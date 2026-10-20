@@ -9,8 +9,18 @@ class FileStorage:
     __file_path = "file.json"
     __objects = {}
 
-    def all(self):
-        """Return __objects dictionary."""
+    def all(self, cls=None):
+        """Return __objects dictionary, optionally filtered by class."""
+        if cls is not None:
+            new_dict = {}
+            for key, value in self.__objects.items():
+                if isinstance(cls, str):
+                    if value.__class__.__name__ == cls:
+                        new_dict[key] = value
+                else:
+                    if isinstance(value, cls):
+                        new_dict[key] = value
+            return new_dict
         return FileStorage.__objects
 
     def new(self, obj):
@@ -29,6 +39,13 @@ class FileStorage:
         with open(FileStorage.__file_path,
                   "w", encoding="utf-8") as f:
             json.dump(json_objects, f)
+
+    def delete(self, obj=None):
+        """Delete obj from __objects if it's inside."""
+        if obj is not None:
+            key = "{}.{}".format(obj.__class__.__name__, obj.id)
+            if key in self.__objects:
+                del self.__objects[key]
 
     def reload(self):
         """Deserialize JSON file to __objects."""
@@ -64,3 +81,7 @@ class FileStorage:
                         FileStorage.__objects[key] = obj
         except Exception:
             pass
+
+    def close(self):
+        """Call reload() method for deserializing the JSON file to objects."""
+        self.reload()

@@ -9,6 +9,7 @@ from models.city import City
 from models.place import Place
 from models.amenity import Amenity
 from models.review import Review
+import shlex
 
 
 class HBNBCommand(cmd.Cmd):
@@ -38,14 +39,40 @@ class HBNBCommand(cmd.Cmd):
         pass
 
     def do_create(self, arg):
-        """Create a new instance."""
+        """Create a new instance with optional parameters.
+        Usage: create <Class name> <param 1 name>=<param 1 value> ...
+        """
         if not arg:
             print("** class name missing **")
             return
-        if arg not in self.classes:
+        args = shlex.split(arg)
+        cls_name = args[0]
+        if cls_name not in self.classes:
             print("** class doesn't exist **")
             return
-        obj = self.classes[arg]()
+
+        kwargs = {}
+        for param in args[1:]:
+            if "=" in param:
+                key, val = param.split("=", 1)
+                # string value
+                if val.startswith('"') and val.endswith('"'):
+                    val = val[1:-1].replace('_', ' ').replace('\\"', '"')
+                # float value
+                elif "." in val:
+                    try:
+                        val = float(val)
+                    except ValueError:
+                        continue
+                # integer value
+                else:
+                    try:
+                        val = int(val)
+                    except ValueError:
+                        continue
+                kwargs[key] = val
+
+        obj = self.classes[cls_name](**kwargs)
         obj.save()
         print(obj.id)
 
@@ -81,30 +108,28 @@ class HBNBCommand(cmd.Cmd):
             print("** instance id missing **")
             return
         key = "{}.{}".format(args[0], args[1])
-        if key not in storage.all():
+        obj = storage.all().get(key)
+        if not obj:
             print("** no instance found **")
             return
-        del storage.all()[key]
+        storage.delete(obj)
         storage.save()
 
     def do_all(self, arg):
         """Print all instances."""
-        objs = storage.all()
         if arg:
             if arg not in self.classes:
                 print("** class doesn't exist **")
                 return
-            result = [
-                str(v) for k, v in objs.items()
-                if k.startswith(arg + ".")
-            ]
+            objs = storage.all(self.classes[arg])
         else:
-            result = [str(v) for v in objs.values()]
+            objs = storage.all()
+        result = [str(v) for v in objs.values()]
         print(result)
 
     def do_update(self, arg):
         """Update an instance attribute."""
-        args = arg.split()
+        args = shlex.split(arg)
         if not args:
             print("** class name missing **")
             return
@@ -126,7 +151,7 @@ class HBNBCommand(cmd.Cmd):
             print("** value missing **")
             return
         attr = args[2]
-        val = args[3].strip('"')
+        val = args[3]
         try:
             val = int(val)
         except ValueError:
@@ -138,19 +163,15 @@ class HBNBCommand(cmd.Cmd):
         obj.save()
 
     def do_count(self, arg):
-        """Count instances of a class."""
+        """Count number of instances of a class."""
         if not arg:
             print("** class name missing **")
             return
         if arg not in self.classes:
             print("** class doesn't exist **")
             return
-        count = sum(
-            1 for k in storage.all()
-            if k.startswith(arg + ".")
-        )
-        print(count)
+        print(len(storage.all(self.classes[arg])))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     HBNBCommand().cmdloop()
