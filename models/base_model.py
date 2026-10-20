@@ -46,10 +46,12 @@ class BaseModel:
         """Dictionary representation."""
         dictionary = dict(self.__dict__)
         dictionary["__class__"] = self.__class__.__name__
-        if "created_at" in dictionary and isinstance(dictionary["created_at"], datetime):
-            dictionary["created_at"] = dictionary["created_at"].isoformat()
-        if "updated_at" in dictionary and isinstance(dictionary["updated_at"], datetime):
-            dictionary["updated_at"] = dictionary["updated_at"].isoformat()
+        if "created_at" in dictionary:
+            if isinstance(dictionary["created_at"], datetime):
+                dictionary["created_at"] = dictionary["created_at"].isoformat()
+        if "updated_at" in dictionary:
+            if isinstance(dictionary["updated_at"], datetime):
+                dictionary["updated_at"] = dictionary["updated_at"].isoformat()
         if "_sa_instance_state" in dictionary:
             del dictionary["_sa_instance_state"]
         return dictionary
