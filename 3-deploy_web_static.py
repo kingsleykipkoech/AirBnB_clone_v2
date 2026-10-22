@@ -1,10 +1,8 @@
 #!/usr/bin/python3
-# Fabric script that creates and distributes an archive to web servers
-from fabric.api import env
+"""Fabric script that creates and distributes an archive to web servers."""
+from fabric.api import env, local, put, run
 from datetime import datetime
 import os
-
-from fabric.api import local, put, run
 
 env.hosts = ['54.157.32.137', '54.89.246.137']
 
@@ -30,7 +28,8 @@ def do_pack():
 
     print("Packing web_static to {}".format(archive_path))
 
-    local("tar -cvzf {} web_static".format(archive_path), capture=False)
+    cmd = "tar -cvzf {} web_static".format(archive_path)
+    result = local(cmd, capture=False)
 
     if os.path.exists(archive_path):
         size = os.path.getsize(archive_path)
@@ -54,7 +53,7 @@ def do_deploy(archive_path):
 
     try:
         archive_filename = os.path.basename(archive_path)
-        archive_name = archive_filename.replace(".tgz", "")
+        archive_name = archive_filename.split('.')[0]
         release_path = "/data/web_static/releases/{}/".format(archive_name)
 
         put(archive_path, "/tmp/{}".format(archive_filename))
@@ -65,8 +64,6 @@ def do_deploy(archive_path):
         run("rm -rf {}web_static".format(release_path))
         run("rm -rf /data/web_static/current")
         run("ln -s {} /data/web_static/current".format(release_path))
-
-        print("New version deployed!")
         return True
 
     except Exception:
